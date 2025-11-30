@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StoryThread · Reading & Watching Log</title>
+    <style>
+        :root {
+            color-scheme: light;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            --bg: #ffffff;
+            --card: #ffffff;
+            --border: #e2e2e2;
+            --primary: #111111;
+            --primary-dark: #000000;
+            --ink: #111111;
+            --muted: #666666;
+            --success: #0a7cff;
+            --danger: #ff4d4f;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 40px 0;
+            min-height: 100vh;
+            background: var(--bg);
+            color: var(--ink);
+        }
+
+        .app {
+            width: min(960px, calc(100% - 40px));
+            margin: 0 auto;
+            background: var(--card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 32px 40px 40px;
+            text-align: left;
+        }
+
+        header {
+            padding: 12px 0 24px;
+            text-align: center;
+        }
+
+        header h1 {
+            margin: 0 0 8px;
+            font-size: clamp(1.8rem, 3vw, 2.4rem);
+        }
+
+        header p {
+            margin: 0;
+            color: var(--muted);
+            max-width: 640px;
+            line-height: 1.6;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .layout {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .panel-stack {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: #ffffff;
+            border-radius: 12px;
+            padding: 18px;
+            border: 1px solid var(--border);
+            box-shadow: none;
+        }
+
+        .card h2 {
+            margin-top: 0;
+            margin-bottom: 12px;
+            font-size: 1.15rem;
+        }
+
+        label {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            font-size: 0.85rem;
+            color: var(--muted);
+        }
+
+        input, select, textarea {
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+            font-family: inherit;
+            background: #fff;
+            color: var(--ink);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 90px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin: 18px 0;
+        }
+
+        button {
+            cursor: pointer;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            padding: 9px 20px;
+            font-family: inherit;
+            background: transparent;
+            color: var(--primary);
+        }
+
+        .btn-primary {
+            background: var(--primary);
+            color: #fff;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--muted);
+            border-color: var(--border);
+        }
+
+        .form-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            align-items: center;
+            margin-top: 6px;
+        }
+
+        .entry-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .library-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .action-btn {
+            border-radius: 16px;
+            border: 1px solid var(--border);
+            background: #f7f7f7;
+            color: var(--muted);
+            font-size: 0.75rem;
+            padding: 4px 10px;
+            font-weight: 600;
+        }
+
+        .action-btn:hover {
+            color: var(--primary);
+        }
+
+        .action-btn.danger {
+            color: var(--danger);
+            border-color: var(--danger);
+        }
+
+        .item-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 14px;
+        }
+
+        .library-item {
+            display: grid;
+            grid-template-columns: 60px 1fr;
+            gap: 12px;
+            padding: 12px;
+            border-radius: 12px;
+            background: #f9f9f9;
+            border: 1px solid var(--border);
+        }
+
+        .library-item img {
+            width: 52px;
+            height: 75px;
+            object-fit: cover;
+            border-radius: 12px;
+            border: 1px solid var(--border);
+        }
+
+        .library-item p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 0.85rem;
+        }
+
+        .library-title {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: var(--ink);
+        }
+
+        .resource-hint {
+            font-size: 0.85rem;
+            margin-top: 8px;
+            color: var(--muted);
+        }
+
+        .status-line {
+            min-height: 20px;
+            margin-top: 8px;
+        }
+
+        .status-line.success {
+            color: var(--success);
+        }
+
+        .status-line.error {
+            color: var(--danger);
+        }
+
+        .calendar-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 18px;
+        }
+
+        .calendar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .calendar-header button {
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            border: 1px solid var(--border);
+            background: #fff;
+            color: var(--primary);
+            box-shadow: none;
+        }
+
+        .calendar-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+        }
+
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 10px;
+        }
+
+        .weekday {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--muted);
+        }
+
+        .day {
+            background: #fcfcfc;
+            border-radius: 12px;
+            min-height: 110px;
+            padding: 10px;
+            border: 1px solid var(--border);
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            position: relative;
+        }
+
+        .day.faded {
+            opacity: 0.4;
+        }
+
+        .day.selected {
+            border-color: var(--primary);
+            box-shadow: inset 0 0 0 1px var(--primary);
+        }
+
+        .day-number {
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .entry-chip {
+            font-size: 0.75rem;
+            padding: 3px 6px;
+            border-radius: 999px;
+            background: #f1f1f1;
+            color: var(--muted);
+            line-height: 1.2;
+        }
+
+        .day-detail {
+            border-top: 1px solid var(--border);
+            padding-top: 18px;
+        }
+
+        .day-detail h4 {
+            margin: 0 0 8px;
+        }
+
+        .detail-entry {
+            background: #fafafa;
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+        }
+
+        .detail-entry strong {
+            display: block;
+            margin-bottom: 6px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            background: #efefef;
+            color: var(--primary);
+        }
+
+        .reflections-list {
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            margin: 16px 0 0;
+        }
+
+        .reflection-card {
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            background: #fafafa;
+        }
+
+        .reflection-card small {
+            color: var(--muted);
+        }
+
+        .reflection-card h3 {
+            margin: 6px 0;
+            font-size: 1rem;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 24px;
+            border: 1px dashed var(--border);
+            border-radius: 12px;
+            color: var(--muted);
+            background: #fff;
+        }
+
+        .flex-row {
+            display: flex;
+            gap: 12px;
+        }
+
+        .flex-row > * {
+            flex: 1;
+        }
+
+        .small-note {
+            font-size: 0.8rem;
+            color: var(--muted);
+        }
+
+        @media (max-width: 980px) {
+            .layout {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <header>
+            <h1>StoryThread</h1>
+            <p>Track books, films, and series the moment you interact with them. Add them to your library,
+                log each session on the calendar, and capture the thoughts that hit you while they’re still fresh.</p>
+        </header>
+        <div class="layout">
+            <section class="card calendar-card">
+                <div class="calendar-header">
+                    <button id="prevMonthBtn" aria-label="Previous month">‹</button>
+                    <h3 id="calendarLabel"></h3>
+                    <button id="nextMonthBtn" aria-label="Next month">›</button>
+                </div>
+                <div class="calendar-grid" id="calendarGrid"></div>
+                <div class="day-detail" id="dayDetail"></div>
+            </section>
+
+            <article class="card">
+                <h2>Reflections</h2>
+                <p class="small-note">Quick review of recent entries that include thoughts. Use them as seeds for longer reviews or newsletters.</p>
+                <div id="reflectionList" class="reflections-list"></div>
+            </article>
+
+            <div class="panel-stack">
+                <article class="card">
+                    <h2>Add something new</h2>
+                    <form id="itemForm">
+                        <div class="form-group">
+                            <label>
+                                Title
+                                <input type="text" name="title" required placeholder="Project Hail Mary">
+                            </label>
+                            <label>
+                                Creator
+                                <input type="text" name="creator" placeholder="Andy Weir">
+                            </label>
+                            <div class="flex-row">
+                                <label>
+                                    Format
+                                    <select name="format" required>
+                                        <option value="Book">Book</option>
+                                        <option value="Movie">Movie</option>
+                                        <option value="Show">Show</option>
+                                    </select>
+                                </label>
+                                <label>
+                                    Year
+                                    <input type="number" name="year" min="1900" max="2099" placeholder="2024">
+                                </label>
+                            </div>
+                            <label>
+                                Cover or Poster URL
+                                <input type="url" name="cover" placeholder="https://covers.openlibrary.org/...">
+                            </label>
+                            <label>
+                                Info Source Link
+                                <input type="url" name="source" placeholder="https://openlibrary.org/...">
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn-primary" type="submit" id="itemSubmitBtn">Save to Library</button>
+                            <button class="btn-ghost" type="button" id="cancelItemEditBtn" hidden>Cancel edit</button>
+                        </div>
+                    </form>
+                    <p class="resource-hint small-note">Need metadata? Use the finder below to pull details from Open Library or TMDB and auto-fill this form.</p>
+                </article>
+
+                <article class="card">
+                    <h2>Metadata finder</h2>
+                    <form id="resourceForm">
+                        <div class="form-group">
+                            <label>
+                                Search phrase
+                                <input type="text" id="resourceQuery" placeholder="Dune Part Two">
+                            </label>
+                            <label>
+                                I’m looking for
+                                <select id="resourceType">
+                                    <option value="book">Book details (Open Library)</option>
+                                    <option value="movie">Movie or show details (TMDB)</option>
+                                </select>
+                            </label>
+                            <label>
+                                TMDB API key (stored locally)
+                                <input type="password" id="tmdbKeyInput" placeholder="Paste your TMDB v3 key">
+                            </label>
+                        </div>
+                        <button type="submit" class="btn-primary">Fetch & fill</button>
+                    </form>
+                    <p id="resourceStatus" class="status-line small-note"></p>
+                    <p class="resource-hint small-note">Use Open Library for books (no key required). For TMDB, create a free API key and paste it above once—it stays in this browser only.</p>
+                </article>
+
+                <article class="card">
+                    <h2>Log today’s session</h2>
+                    <form id="entryForm">
+                        <div class="form-group">
+                            <label>
+                                Select item
+                                <select name="itemId" id="entryItemSelect" required></select>
+                            </label>
+                            <div class="flex-row">
+                                <label>
+                                    Date
+                                    <input type="date" name="date" id="entryDate" required>
+                                </label>
+                                <label>
+                                    Status
+                                    <select name="status">
+                                        <option value="Planning">Planning</option>
+                                        <option value="In Progress">In progress</option>
+                                        <option value="Completed">Completed</option>
+                                    </select>
+                                </label>
+                            </div>
+                            <label>
+                                Progress snapshot
+                                <input type="text" name="progress" placeholder="Ch 12 · Episode 4 · 40%">
+                            </label>
+                            <label>
+                                Thoughts
+                                <textarea name="thoughts" placeholder="What stuck with you today?"></textarea>
+                            </label>
+                        </div>
+                        <div class="form-actions">
+                            <button class="btn-primary" type="submit" id="entrySubmitBtn">Add to calendar</button>
+                            <button class="btn-ghost" type="button" id="cancelEditBtn" hidden>Cancel edit</button>
+                            <button class="btn-ghost" type="button" id="resetDataBtn">Reset demo data</button>
+                        </div>
+                    </form>
+                </article>
+
+                <article class="card">
+                    <h2>Your library</h2>
+                    <div id="libraryList" class="item-list"></div>
+                </article>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const storageKeys = {
+            items: "storyThread_items",
+            entries: "storyThread_entries",
+            tmdbKey: "storyThread_tmdbKey"
+        };
+
+        const defaultItems = [
+            {
+                id: "item-1",
+                title: "Project Hail Mary",
+                creator: "Andy Weir",
+                format: "Book",
+                year: "2021",
+                cover: "https://covers.openlibrary.org/b/id/10523354-L.jpg",
+                source: "https://openlibrary.org/works/OL20628576W"
+            },
+            {
+                id: "item-2",
+                title: "Everything Everywhere All at Once",
+                creator: "Daniel Kwan & Daniel Scheinert",
+                format: "Movie",
+                year: "2022",
+                cover: "https://image.tmdb.org/t/p/w154/w3LxiVYdWWRvEVdn5RYq6jcgTcr.jpg",
+                source: "https://www.themoviedb.org/movie/545611"
+            },
+            {
+                id: "item-3",
+                title: "The Bear",
+                creator: "Christopher Storer",
+                format: "Show",
+                year: "2022",
+                cover: "https://image.tmdb.org/t/p/w154/iAwtOaYU0o9vF76QeHhjgFfEN9K.jpg",
+                source: "https://www.themoviedb.org/tv/113962"
+            }
+        ];
+
+        const defaultEntries = [
+            {
+                id: "entry-1",
+                itemId: "item-1",
+                date: new Date().toISOString().slice(0, 10),
+                progress: "Page 210 · Rocky just showed up",
+                status: "In Progress",
+                thoughts: "Loved learning new physics slang through Ryland’s inner monologue."
+            },
+            {
+                id: "entry-2",
+                itemId: "item-2",
+                date: new Date(new Date().setDate(new Date().getDate() - 3)).toISOString().slice(0, 10),
+                progress: "Rewatch",
+                status: "Completed",
+                thoughts: "Everything bagel metaphor landed harder this time. Need to capture what it says about burnout."
+            },
+            {
+                id: "entry-3",
+                itemId: "item-3",
+                date: new Date(new Date().setDate(new Date().getDate() - 10)).toISOString().slice(0, 10),
+                progress: "Season 3 · Ep 4",
+                status: "In Progress",
+                thoughts: ""
+            }
+        ];
+
+        let items = [];
+        let entries = [];
+        let selectedDate = new Date().toISOString().slice(0, 10);
+        let currentMonth = new Date();
+        let editingItemId = null;
+        let editingEntryId = null;
+        let tmdbKey = "";
+
+        const dom = {
+            itemForm: document.getElementById("itemForm"),
+            entryForm: document.getElementById("entryForm"),
+            resourceForm: document.getElementById("resourceForm"),
+            libraryList: document.getElementById("libraryList"),
+            entryItemSelect: document.getElementById("entryItemSelect"),
+            entryDate: document.getElementById("entryDate"),
+            itemSubmitBtn: document.getElementById("itemSubmitBtn"),
+            cancelItemEditBtn: document.getElementById("cancelItemEditBtn"),
+            entrySubmitBtn: document.getElementById("entrySubmitBtn"),
+            cancelEditBtn: document.getElementById("cancelEditBtn"),
+            calendarLabel: document.getElementById("calendarLabel"),
+            calendarGrid: document.getElementById("calendarGrid"),
+            dayDetail: document.getElementById("dayDetail"),
+            reflectionList: document.getElementById("reflectionList"),
+            prevMonthBtn: document.getElementById("prevMonthBtn"),
+            nextMonthBtn: document.getElementById("nextMonthBtn"),
+            resetDataBtn: document.getElementById("resetDataBtn"),
+            resourceQuery: document.getElementById("resourceQuery"),
+            resourceType: document.getElementById("resourceType"),
+            tmdbKeyInput: document.getElementById("tmdbKeyInput"),
+            resourceStatus: document.getElementById("resourceStatus")
+        };
+
+        function loadState() {
+            const storedItems = localStorage.getItem(storageKeys.items);
+            const storedEntries = localStorage.getItem(storageKeys.entries);
+            items = storedItems ? JSON.parse(storedItems) : defaultItems;
+            entries = storedEntries ? JSON.parse(storedEntries) : defaultEntries;
+            tmdbKey = localStorage.getItem(storageKeys.tmdbKey) || "";
+        }
+
+        function saveState() {
+            localStorage.setItem(storageKeys.items, JSON.stringify(items));
+            localStorage.setItem(storageKeys.entries, JSON.stringify(entries));
+        }
+
+        function persistTmdbKey(value) {
+            if (value) {
+                localStorage.setItem(storageKeys.tmdbKey, value);
+            } else {
+                localStorage.removeItem(storageKeys.tmdbKey);
+            }
+        }
+
+        function generateId(prefix) {
+            return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+        }
+
+        function handleItemSubmit(event) {
+            event.preventDefault();
+            const formData = new FormData(dom.itemForm);
+            const payload = {
+                title: formData.get("title").trim(),
+                creator: formData.get("creator").trim(),
+                format: formData.get("format"),
+                year: formData.get("year").trim(),
+                cover: formData.get("cover").trim(),
+                source: formData.get("source").trim()
+            };
+            if (!payload.title) return;
+
+            if (editingItemId) {
+                items = items.map(item => item.id === editingItemId ? { ...item, ...payload } : item);
+            } else {
+                items = [{ id: generateId("item"), ...payload }, ...items];
+            }
+
+            saveState();
+            dom.itemForm.reset();
+            setItemFormState(false);
+            renderLibrary();
+            renderEntryOptions();
+        }
+
+        function handleEntrySubmit(event) {
+            event.preventDefault();
+            if (!items.length) {
+                alert("Add something to your library first.");
+                return;
+            }
+            const formData = new FormData(dom.entryForm);
+            const payload = {
+                itemId: formData.get("itemId"),
+                date: formData.get("date"),
+                status: formData.get("status"),
+                progress: formData.get("progress").trim(),
+                thoughts: formData.get("thoughts").trim()
+            };
+            if (!payload.itemId || !payload.date) return;
+            selectedDate = payload.date;
+
+            if (editingEntryId) {
+                entries = entries.map(entry => entry.id === editingEntryId ? { ...entry, ...payload } : entry);
+            } else {
+                entries = [{ id: generateId("entry"), ...payload }, ...entries];
+            }
+
+            saveState();
+            dom.entryForm.reset();
+            dom.entryDate.value = selectedDate;
+            setEntryFormState(false);
+            renderLibrary();
+            renderCalendar();
+            renderDayDetail(selectedDate);
+            renderReflections();
+        }
+
+        async function handleResourceSearch(event) {
+            event.preventDefault();
+            const query = dom.resourceQuery.value.trim();
+            if (!query) return;
+            const type = dom.resourceType.value;
+            setResourceStatus("Fetching metadata…", "");
+
+            try {
+                let metadata = null;
+                if (type === "book") {
+                    metadata = await fetchOpenLibraryMetadata(query);
+                } else {
+                    if (!tmdbKey) {
+                        setResourceStatus("Add your TMDB API key above to fetch movie or show data.", "error");
+                        return;
+                    }
+                    metadata = await fetchTmdbMetadata(query);
+                }
+
+                if (!metadata) {
+                    setResourceStatus("No results found. Try refining your query.", "error");
+                    return;
+                }
+
+                populateItemFormFields(metadata);
+                setResourceStatus(`Filled fields using ${type === "book" ? "Open Library" : "TMDB"}.`, "success");
+            } catch (error) {
+                console.error(error);
+                setResourceStatus("Couldn’t fetch metadata. Check the console for details.", "error");
+            }
+        }
+
+        function setResourceStatus(message, variant = "") {
+            dom.resourceStatus.textContent = message;
+            dom.resourceStatus.classList.remove("success", "error");
+            if (variant) {
+                dom.resourceStatus.classList.add(variant);
+            }
+        }
+
+        async function fetchOpenLibraryMetadata(query) {
+            const url = `https://openlibrary.org/search.json?limit=1&q=${encodeURIComponent(query)}`;
+            const response = await fetch(url);
+            if (!response.ok) throw new Error("Open Library request failed");
+            const data = await response.json();
+            if (!data.docs?.length) return null;
+            const doc = data.docs[0];
+            return {
+                title: doc.title || "",
+                creator: doc.author_name?.[0] || "",
+                format: "Book",
+                year: doc.first_publish_year ? String(doc.first_publish_year) : "",
+                cover: doc.cover_i ? `https://covers.openlibrary.org/b/id/${doc.cover_i}-L.jpg` : "",
+                source: doc.key ? `https://openlibrary.org${doc.key}` : ""
+            };
+        }
+
+        async function fetchTmdbMetadata(query) {
+            const searchUrl = `https://api.themoviedb.org/3/search/multi?api_key=${tmdbKey}&query=${encodeURIComponent(query)}`;
+            const response = await fetch(searchUrl);
+            if (!response.ok) throw new Error("TMDB search failed");
+            const data = await response.json();
+            if (!data.results?.length) return null;
+            const match = data.results.find(item => item.media_type === "movie" || item.media_type === "tv") || data.results[0];
+            if (!match) return null;
+
+            const mediaType = match.media_type === "movie" ? "movie" : "tv";
+            let detail = null;
+            try {
+                const detailUrl = `https://api.themoviedb.org/3/${mediaType}/${match.id}?api_key=${tmdbKey}&append_to_response=credits`;
+                const detailResponse = await fetch(detailUrl);
+                detail = detailResponse.ok ? await detailResponse.json() : null;
+            } catch (error) {
+                console.warn("TMDB detail fetch failed", error);
+            }
+
+            let creator = "";
+            if (mediaType === "movie" && detail?.credits?.crew?.length) {
+                const director = detail.credits.crew.find(person => person.job === "Director");
+                creator = director?.name || "";
+            } else if (mediaType === "tv" && detail?.created_by?.length) {
+                creator = detail.created_by.map(person => person.name).filter(Boolean).join(", ");
+            }
+
+            const isMovie = mediaType === "movie";
+            const yearSource = (isMovie ? match.release_date : match.first_air_date) || "";
+
+            return {
+                title: match.title || match.name || "",
+                creator,
+                format: isMovie ? "Movie" : "Show",
+                year: yearSource ? yearSource.slice(0, 4) : "",
+                cover: match.poster_path ? `https://image.tmdb.org/t/p/w342${match.poster_path}` : "",
+                source: `https://www.themoviedb.org/${isMovie ? "movie" : "tv"}/${match.id}`
+            };
+        }
+
+        function renderLibrary() {
+            if (!items.length) {
+                dom.libraryList.innerHTML = `<div class="empty-state">No items yet. Add your first title above.</div>`;
+                return;
+            }
+            dom.libraryList.innerHTML = items
+                .map(item => {
+                    const entryCount = entries.filter(e => e.itemId === item.id).length;
+                    return `
+                        <div class="library-item">
+                            <img src="${item.cover || "https://placehold.co/90x120?text=No+Art"}" alt="">
+                            <div>
+                                <div class="library-title">${item.title}</div>
+                                <p>${item.creator || "Unknown"} · ${item.format}${item.year ? " · " + item.year : ""}</p>
+                                <p>${entryCount} ${entryCount === 1 ? "entry" : "entries"}</p>
+                                <div class="library-actions">
+                                    <button type="button" class="action-btn" data-item-id="${item.id}" data-action="edit-item">Edit</button>
+                                    <button type="button" class="action-btn danger" data-item-id="${item.id}" data-action="delete-item">Delete</button>
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                })
+                .join("");
+        }
+
+        function renderEntryOptions() {
+            if (!items.length) {
+                dom.entryItemSelect.innerHTML = `<option value="">Add something to the library first</option>`;
+                return;
+            }
+            dom.entryItemSelect.innerHTML = items
+                .map(item => `<option value="${item.id}">${item.title} (${item.format})</option>`)
+                .join("");
+        }
+
+        function populateItemFormFields(values) {
+            const form = dom.itemForm.elements;
+            form.title.value = values.title || "";
+            form.creator.value = values.creator || "";
+            form.format.value = values.format || "Book";
+            form.year.value = values.year || "";
+            form.cover.value = values.cover || "";
+            form.source.value = values.source || "";
+        }
+
+        function setItemFormState(isEditing) {
+            dom.itemSubmitBtn.textContent = isEditing ? "Update item" : "Save to Library";
+            dom.cancelItemEditBtn.hidden = !isEditing;
+        }
+
+        function startItemEdit(itemId) {
+            const item = items.find(entry => entry.id === itemId);
+            if (!item) return;
+            editingItemId = itemId;
+            populateItemFormFields(item);
+            setItemFormState(true);
+        }
+
+        function cancelItemEdit() {
+            editingItemId = null;
+            dom.itemForm.reset();
+            setItemFormState(false);
+        }
+
+        function handleItemDelete(itemId) {
+            const item = items.find(entry => entry.id === itemId);
+            if (!item) return;
+            const confirmed = confirm(`Delete ${item.title}? This also removes its logged entries.`);
+            if (!confirmed) return;
+            items = items.filter(entry => entry.id !== itemId);
+            entries = entries.filter(entry => entry.itemId !== itemId);
+            if (editingItemId === itemId) {
+                cancelItemEdit();
+            }
+            if (editingEntryId && !entries.some(entry => entry.id === editingEntryId)) {
+                cancelEntryEdit();
+            }
+            saveState();
+            renderEverything();
+        }
+
+        function renderCalendar() {
+            const year = currentMonth.getFullYear();
+            const month = currentMonth.getMonth();
+            const startOfMonth = new Date(year, month, 1);
+            const firstDay = startOfMonth.getDay();
+            const daysInMonth = new Date(year, month + 1, 0).getDate();
+            dom.calendarLabel.textContent = startOfMonth.toLocaleDateString(undefined, { month: "long", year: "numeric" });
+
+            const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+            dom.calendarGrid.innerHTML = [
+                ...weekdays.map(day => `<div class="weekday">${day}</div>`),
+                ...Array(42).fill(null).map((_, index) => {
+                    const dayNumber = index - firstDay + 1;
+                    const date = new Date(year, month, dayNumber);
+                    const isCurrentMonth = dayNumber > 0 && dayNumber <= daysInMonth;
+                    const isoDate = date.toISOString().slice(0, 10);
+                    const dayEntries = entries.filter(entry => entry.date === isoDate);
+                    const classes = ["day"];
+                    if (!isCurrentMonth) classes.push("faded");
+                    if (isoDate === selectedDate) classes.push("selected");
+
+                    return `
+                        <button class="${classes.join(" ")}" data-date="${isoDate}" type="button">
+                            <div class="day-number">${date.getDate()}</div>
+                            <div class="day-entries">${dayEntries.slice(0, 3).map(entry => {
+                                const item = items.find(item => item.id === entry.itemId);
+                                const icon = (item?.format || "Item").charAt(0);
+                                return `<div class="entry-chip">${icon} · ${item ? item.title : "Unknown"}</div>`;
+                            }).join("")}${dayEntries.length > 3 ? `<div class="entry-chip">+${dayEntries.length - 3} more</div>` : ""}</div>
+                        </button>
+                    `;
+                })
+            ].join("");
+
+            dom.calendarGrid.querySelectorAll(".day").forEach(dayEl => {
+                dayEl.addEventListener("click", () => {
+                    selectedDate = dayEl.dataset.date;
+                    dom.entryDate.value = selectedDate;
+                    renderCalendar();
+                    renderDayDetail(selectedDate);
+                });
+            });
+        }
+
+        function renderDayDetail(date) {
+            const dayEntries = entries.filter(entry => entry.date === date)
+                .sort((a, b) => b.id.localeCompare(a.id));
+            if (!dayEntries.length) {
+                dom.dayDetail.innerHTML = `<div class="empty-state">No entries logged on ${formatDate(date)} yet.</div>`;
+                return;
+            }
+            dom.dayDetail.innerHTML = `
+                <h4>${formatDate(date)}</h4>
+                ${dayEntries.map(entry => {
+                    const item = items.find(item => item.id === entry.itemId);
+                    return `
+                        <div class="detail-entry">
+                            <strong>${item ? item.title : "Unknown title"}</strong>
+                            <div class="status-pill">${entry.status}</div>
+                            <p class="small-note">${entry.progress || "No progress noted"}</p>
+                            ${entry.thoughts ? `<p>${entry.thoughts}</p>` : ""}
+                            <div class="entry-actions">
+                                <button type="button" class="action-btn" data-entry-id="${entry.id}" data-action="edit">Edit</button>
+                                <button type="button" class="action-btn danger" data-entry-id="${entry.id}" data-action="delete">Delete</button>
+                            </div>
+                        </div>
+                    `;
+                }).join("")}
+            `;
+        }
+
+        function populateEntryFormFields(entry) {
+            const form = dom.entryForm.elements;
+            form.itemId.value = entry.itemId;
+            form.date.value = entry.date;
+            form.status.value = entry.status;
+            form.progress.value = entry.progress || "";
+            form.thoughts.value = entry.thoughts || "";
+        }
+
+        function setEntryFormState(isEditing) {
+            dom.entrySubmitBtn.textContent = isEditing ? "Save changes" : "Add to calendar";
+            dom.cancelEditBtn.hidden = !isEditing;
+        }
+
+        function startEntryEdit(entryId) {
+            const entry = entries.find(item => item.id === entryId);
+            if (!entry) return;
+            editingEntryId = entryId;
+            selectedDate = entry.date;
+            populateEntryFormFields(entry);
+            setEntryFormState(true);
+            renderCalendar();
+            renderDayDetail(selectedDate);
+        }
+
+        function cancelEntryEdit() {
+            editingEntryId = null;
+            dom.entryForm.reset();
+            dom.entryDate.value = selectedDate;
+            setEntryFormState(false);
+        }
+
+        function handleEntryDelete(entryId) {
+            const entry = entries.find(item => item.id === entryId);
+            if (!entry) return;
+            const confirmed = confirm("Delete this entry?");
+            if (!confirmed) return;
+            entries = entries.filter(item => item.id !== entryId);
+            if (editingEntryId === entryId) {
+                cancelEntryEdit();
+            }
+            saveState();
+            renderLibrary();
+            renderCalendar();
+            renderDayDetail(selectedDate);
+            renderReflections();
+        }
+
+        function handleLibraryListClick(event) {
+            const control = event.target.closest("[data-item-id]");
+            if (!control) return;
+            const itemId = control.dataset.itemId;
+            const action = control.dataset.action;
+            if (action === "edit-item") {
+                startItemEdit(itemId);
+            } else if (action === "delete-item") {
+                handleItemDelete(itemId);
+            }
+        }
+
+        function handleDayDetailClick(event) {
+            const control = event.target.closest("[data-entry-id]");
+            if (!control) return;
+            const entryId = control.dataset.entryId;
+            const action = control.dataset.action;
+            if (action === "edit") {
+                startEntryEdit(entryId);
+            } else if (action === "delete") {
+                handleEntryDelete(entryId);
+            }
+        }
+
+        function handleTmdbKeyInput(event) {
+            tmdbKey = event.target.value.trim();
+            persistTmdbKey(tmdbKey);
+        }
+
+        function renderReflections() {
+            const thoughtfulEntries = entries.filter(entry => entry.thoughts);
+            if (!thoughtfulEntries.length) {
+                dom.reflectionList.innerHTML = `<div class="empty-state">Add a thought to any entry and it will show up here.</div>`;
+                return;
+            }
+            thoughtfulEntries.sort((a, b) => new Date(b.date) - new Date(a.date));
+            dom.reflectionList.innerHTML = thoughtfulEntries.slice(0, 6).map(entry => {
+                const item = items.find(item => item.id === entry.itemId);
+                return `
+                    <div class="reflection-card">
+                        <small>${formatDate(entry.date)}</small>
+                        <h3>${item ? item.title : "Untitled"}</h3>
+                        <p>${entry.thoughts}</p>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function formatDate(isoDate) {
+            return new Date(isoDate).toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric" });
+        }
+
+        function changeMonth(delta) {
+            currentMonth = new Date(currentMonth.getFullYear(), currentMonth.getMonth() + delta, 1);
+            renderCalendar();
+            renderDayDetail(selectedDate);
+        }
+
+        function resetDemoData() {
+            localStorage.removeItem(storageKeys.items);
+            localStorage.removeItem(storageKeys.entries);
+            loadState();
+            selectedDate = new Date().toISOString().slice(0, 10);
+            currentMonth = new Date();
+            dom.entryDate.value = selectedDate;
+            cancelItemEdit();
+            cancelEntryEdit();
+            renderEverything();
+        }
+
+        function renderEverything() {
+            renderLibrary();
+            renderEntryOptions();
+            renderCalendar();
+            renderDayDetail(selectedDate);
+            renderReflections();
+        }
+
+        function init() {
+            loadState();
+            dom.entryDate.value = selectedDate;
+            dom.itemForm.addEventListener("submit", handleItemSubmit);
+            dom.entryForm.addEventListener("submit", handleEntrySubmit);
+            dom.resourceForm.addEventListener("submit", handleResourceSearch);
+            dom.libraryList.addEventListener("click", handleLibraryListClick);
+            dom.dayDetail.addEventListener("click", handleDayDetailClick);
+            dom.cancelItemEditBtn.addEventListener("click", cancelItemEdit);
+            dom.cancelEditBtn.addEventListener("click", cancelEntryEdit);
+            dom.prevMonthBtn.addEventListener("click", () => changeMonth(-1));
+            dom.nextMonthBtn.addEventListener("click", () => changeMonth(1));
+            dom.resetDataBtn.addEventListener("click", resetDemoData);
+            dom.tmdbKeyInput.value = tmdbKey;
+            dom.tmdbKeyInput.addEventListener("input", handleTmdbKeyInput);
+            setItemFormState(false);
+            setEntryFormState(false);
+            setResourceStatus("");
+            renderEverything();
+        }
+
+        init();
+    </script>
+</body>
+</html>
